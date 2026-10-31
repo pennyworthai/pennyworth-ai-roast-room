@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(/sessions/**)",
+      "Bash(python .gemini/skills/roast-room/scripts/check_quotes.py:*)",
+      "Bash(python3 .gemini/skills/roast-room/scripts/check_quotes.py:*)"
+    ]
+  }
+}

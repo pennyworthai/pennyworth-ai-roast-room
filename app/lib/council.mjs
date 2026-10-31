@@ -6,8 +6,8 @@ import { S } from "./anthropic.mjs";
 import { SESSIONS_DIR } from "./env.mjs";
 
 export const MODELS = {
-  seat: process.env.SEAT_MODEL || "claude-sonnet-5-5",
-  chair: process.env.CHAIR_MODEL || "claude-opus-5-5",
+  seat: process.env.SEAT_MODEL || "gemini-2.5-flash",
+  chair: process.env.CHAIR_MODEL || "gemini-2.5-pro",
 };
 
 // The board comes from the roster: the saved default board, or every seat it lists.

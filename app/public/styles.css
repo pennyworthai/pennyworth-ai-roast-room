@@ -394,7 +394,7 @@ button { font: inherit; cursor: pointer; }
 .typein .ch { display: inline-block; opacity: 0; filter: blur(6px); animation: chin .5s var(--ease-out) forwards; white-space: pre; }
 @keyframes chin { to { opacity: 1; filter: blur(0); } }
 
-/* viewer mode: waiting for a council started in Claude Code */
+/* viewer mode: waiting for a council started in Gemini */
 .waiting { display: grid; gap: 12px; justify-items: center; text-align: center; width: min(560px, 100%); }
 .waiting h2 { font: 500 clamp(20px, 2vw, 28px)/1.15 var(--font-display); margin: 0; color: var(--ink); letter-spacing: var(--track-head); }
 .waiting p { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 48ch; }

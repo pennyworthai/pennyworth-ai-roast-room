@@ -19,7 +19,7 @@ const GUIDE = `
     <div class="guide-sec">
       <h4>How to use the Roast Room</h4>
       <ol>
-        <li><span>Open Claude Code in this folder.</span></li>
+        <li><span>Open Gemini in this folder.</span></li>
         <li><span>Type <code>/roast-room</code> and your decision.</span></li>
         <li><span>Pick your advisors (the Chair recommends a board) and answer its questions. Then watch the council argue it out here.</span></li>
         <li><span>When the verdict lands, download it as a PDF.</span></li>
@@ -129,7 +129,7 @@ async function refreshSeats() {
   return r;
 }
 
-// a council started in Claude Code shows up here on its own
+// a council started in Gemini shows up here on its own
 const seenLive = new Set();
 async function watchForLive() {
   const ss = await fetch("/api/sessions").then((x) => x.json()).catch(() => null);
@@ -258,7 +258,7 @@ function bindUI() {
   $("#guideBtn").addEventListener("click", openGuide);
   document.addEventListener("click", async (e) => {
     if (e.target.closest("[data-copy-example]")) {
-      try { await navigator.clipboard.writeText("/roast-room " + EXAMPLE); toast("Copied. Paste it into Claude Code."); }
+      try { await navigator.clipboard.writeText("/roast-room " + EXAMPLE); toast("Copied. Paste it into Gemini."); }
       catch { toast("Copy didn't work here. Select the text and copy it."); }
     }
     if (e.target.closest("[data-pdf]")) savePdf(e.target.closest("[data-pdf]"));
@@ -793,10 +793,10 @@ async function replay(id) {
   }
 }
 
-// ------------------------------------------------------------- waiting on Claude Code
+// ------------------------------------------------------------- waiting on Gemini
 // A live council goes quiet for minutes while the seats write in parallel. Instead of a
 // frozen table, say what is happening, how long it has been, and what each seat is weighing.
-const SAME_TIME = "The advisors all write at the same time in Claude Code. Their lines play here as soon as the round is in.";
+const SAME_TIME = "The advisors all write at the same time in Gemini. Their lines play here as soon as the round is in.";
 function waitCopy(phase) {
   const n = state.setup?.mode === "quick" ? 2 : 3;
   return {

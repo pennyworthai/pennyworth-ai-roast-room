@@ -1,8 +1,8 @@
-// Viewer mode: /roast-room runs in Claude Code and writes its session folder as it
+// Viewer mode: /roast-room runs in Gemini and writes its session folder as it
 // goes. This watches the sessions folder and turns those files into the same events the
-// API runner emits, so the room plays a Claude Code council live without calling any API.
+// API runner emits, so the room plays a Gemini council live without calling any API.
 //
-// Files the Chair writes, in order (spec: .claude/skills/roast-room/references/live-room.md):
+// Files the Chair writes, in order (spec: .gemini/skills/roast-room/references/live-room.md):
 //   council.json  -> setup        round-1.md -> Round 1 cards   cruxes.json -> fault lines
 //   round-2.md    -> debate cards  draft.json -> proposal       round-3.md  -> votes
 //   verdict.json  -> the verdict
@@ -211,14 +211,14 @@ export function getLive(id) {
   return skillFolders().includes(id) ? load(id) : null;
 }
 
-/** The council running right now in Claude Code, if any (newest first). */
+/** The council running right now in Gemini, if any (newest first). */
 export function runningId() {
   const r = [...live.values()].filter((x) => x.status === "running" && x.events.length).sort((a, b) => (a.id < b.id ? 1 : -1));
   return r[0]?.id || null;
 }
 
 export function listLive() {
-  return skillFolders().map((n) => { const x = load(n); return { id: x.id, title: x.title || n, prompt: "", mode: x.mode, status: x.status, source: "claude-code" }; });
+  return skillFolders().map((n) => { const x = load(n); return { id: x.id, title: x.title || n, prompt: "", mode: x.mode, status: x.status, source: "gemini" }; });
 }
 
 export function startWatching() {

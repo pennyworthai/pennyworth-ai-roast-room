@@ -4,12 +4,12 @@ import { fileURLToPath } from "node:url";
 
 export const APP_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Two layouts: nested two folders deep in a larger workspace, or the standalone
-// student repo (app/ beside .claude/). The kit has .claude one level up.
-const KIT = fs.existsSync(path.join(APP_ROOT, "..", ".claude", "skills", "roast-room"));
+// student repo (app/ beside .gemini/). The kit has .gemini one level up.
+const KIT = fs.existsSync(path.join(APP_ROOT, "..", ".gemini", "skills", "roast-room"));
 export const REPO_ROOT = KIT ? path.resolve(APP_ROOT, "..") : path.resolve(APP_ROOT, "..", "..");
-export const BRAINS_DIR = path.join(REPO_ROOT, ".claude", "skills", "roast-room", "brains");
-export const ROSTER = path.join(REPO_ROOT, ".claude", "skills", "roast-room", "roster.json");
-export const AGENTS_DIR = path.join(REPO_ROOT, ".claude", "agents");
+export const BRAINS_DIR = path.join(REPO_ROOT, ".gemini", "skills", "roast-room", "brains");
+export const ROSTER = path.join(REPO_ROOT, ".gemini", "skills", "roast-room", "roster.json");
+export const AGENTS_DIR = path.join(REPO_ROOT, ".gemini", "agents");
 export const SESSIONS_DIR = KIT ? path.join(REPO_ROOT, "sessions") : path.join(REPO_ROOT, "projects", "founder-council", "sessions");
 
 let cache = null;
