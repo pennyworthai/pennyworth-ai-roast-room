@@ -9,3 +9,7 @@ build/
 sessions/*
 !sessions/.gitkeep
 !sessions/*example*/
+
+# Audio commentary cache & local model weights
+app/cache/
+.npm-cache/

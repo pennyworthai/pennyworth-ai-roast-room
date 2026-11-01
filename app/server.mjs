@@ -5,6 +5,7 @@ import { APP_ROOT, env } from "./lib/env.mjs";
 import { loadRoster, BOARD } from "./lib/seats.mjs";
 import { startCouncil, getSession, subscribe, listSaved, loadSaved, MODELS } from "./lib/council.mjs";
 import { usage } from "./lib/anthropic.mjs";
+import { SEAT_VOICES, synthesizeVoice } from "./lib/voices.mjs";
 import * as watch from "./lib/watch.mjs";
 
 const PORT = Number(process.env.PORT) || 4730;
@@ -36,8 +37,29 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/seats") {
       // portraits: which of the four mouth shapes exist for each seat (a seat with none gets a drawn bust)
       const frame = (key, sh) => ["webp", "png", "jpg"].map((x) => `${key}-${sh}.${x}`).find((f) => fs.existsSync(path.join(PUBLIC, "portraits", f)));
-      const seats = loadRoster().map((s) => ({ ...s, portraits: Object.fromEntries(["base", "open", "mid", "blink"].map((sh) => [sh, frame(s.key, sh)]).filter(([, f]) => f).map(([sh, f]) => [sh, `/portraits/${f}`])) }));
+      const seats = loadRoster().map((s) => ({ ...s, voice: SEAT_VOICES[s.key] || null, portraits: Object.fromEntries(["base", "open", "mid", "blink"].map((sh) => [sh, frame(s.key, sh)]).filter(([, f]) => f).map(([sh, f]) => [sh, `/portraits/${f}`])) }));
       return send(res, 200, { seats, board: BOARD, models: MODELS, runner: RUNNER, hasKey: Boolean(env("ANTHROPIC_API_KEY")) });
+    }
+    if (p === "/api/voices") return send(res, 200, { voices: SEAT_VOICES });
+    if (p === "/api/voice") {
+      const seat = url.searchParams.get("seat") || "chair";
+      const text = url.searchParams.get("text") || "";
+      const engine = url.searchParams.get("engine") || "";
+      if (!text.trim()) return send(res, 400, { error: "Text is required" });
+      try {
+        const { filePath, mimeType } = await synthesizeVoice(seat, text, { engine });
+        const stat = fs.statSync(filePath);
+        res.writeHead(200, {
+          "content-type": mimeType || "audio/wav",
+          "content-length": stat.size,
+          "cache-control": "public, max-age=31536000, immutable"
+        });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      } catch (err) {
+        console.error("Voice generation failed:", err);
+        return send(res, 500, { error: String(err.message || err) });
+      }
     }
     if (p === "/api/usage") return send(res, 200, usage);
     if (p === "/api/council" && req.method === "POST") {

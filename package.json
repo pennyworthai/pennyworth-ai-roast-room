@@ -5,8 +5,15 @@
   "description": "The Roast Room: eleven AI advisors built from the public work of Bezos, Paul Graham, Hormozi, Gary Vaynerchuk, Dan Martell, Gino Wickman, Buffett, Naval Ravikant, Codie Sanchez, Leila Hormozi, and Sara Blakely (plus any you add with /newroaster) debate your decision in Gemini, live around a table.",
   "type": "module",
   "scripts": {
+    "postinstall": "node app/scripts/patch-kokoro.mjs",
     "start": "node app/server.mjs",
     "smoke": "node app/scripts/smoke.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "kokoro-js": "^1.2.1",
+    "msedge-tts": "^2.1.1"
+  }
 }

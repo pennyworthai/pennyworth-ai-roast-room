@@ -280,9 +280,11 @@ function bindUI() {
   });
   $$(".speed button").forEach((b) => b.addEventListener("click", () => {
     player.speed = Number(b.dataset.speed);
+    if (voiceEngine.currentAudio) voiceEngine.currentAudio.playbackRate = player.speed;
     $$(".speed button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   }));
   $("#skipBtn").addEventListener("click", () => player.skip());
+  voiceEngine.init();
 }
 
 // ------------------------------------------------------------- the player
@@ -309,8 +311,8 @@ const player = {
     return new Promise((res) => { const t = setTimeout(() => { this.timers.delete(o); res(); }, ms / this.speed); const o = { t, res }; this.timers.add(o); });
   },
   flushTimers() { for (const o of this.timers) { clearTimeout(o.t); o.res(); } this.timers.clear(); },
-  skip() { this.fast = true; this.flushTimers(); },
-  reset() { this.epoch++; this.q.length = 0; this.fast = true; this.flushTimers(); this.busy = false; this.fast = false; this.info(); },
+  skip() { this.fast = true; this.flushTimers(); voiceEngine.stop(); },
+  reset() { this.epoch++; this.q.length = 0; this.fast = true; this.flushTimers(); voiceEngine.stop(); this.busy = false; this.fast = false; this.info(); },
   info() {
     const waiting = this.q.filter((e) => e.type === "seat_done").length;
     $("#queueInfo").textContent = waiting ? `${waiting} lines up next` : "";
@@ -523,6 +525,71 @@ function chairSays(text, { dots = false, tag = "" } = {}) {
   $("#capSub").textContent = "";
 }
 
+// ------------------------------------------------------------- voice commentary engine
+const voiceEngine = {
+  enabled: localStorage.getItem("roast_voice_enabled") !== "false",
+  currentAudio: null,
+  audioEpoch: 0,
+  init() {
+    const btn = $("#voiceToggleBtn");
+    if (!btn) return;
+    const updateBtn = () => {
+      btn.textContent = this.enabled ? "🔊 Voice On" : "🔇 Voice Off";
+      btn.classList.toggle("active", this.enabled);
+      btn.classList.toggle("muted", !this.enabled);
+      btn.setAttribute("aria-pressed", String(this.enabled));
+    };
+    updateBtn();
+    btn.addEventListener("click", () => {
+      this.enabled = !this.enabled;
+      localStorage.setItem("roast_voice_enabled", String(this.enabled));
+      if (!this.enabled) this.stop();
+      updateBtn();
+    });
+  },
+  stop() {
+    this.audioEpoch++;
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch {}
+      this.currentAudio = null;
+    }
+  },
+  async play(seatKey, text) {
+    if (!this.enabled || player.fast) return null;
+    this.stop();
+    const myEpoch = ++this.audioEpoch;
+    try {
+      const url = `/api/voice?seat=${encodeURIComponent(seatKey || "chair")}&text=${encodeURIComponent(text)}`;
+      const audio = new Audio(url);
+      audio.playbackRate = player.speed || 1;
+      this.currentAudio = audio;
+
+      const playPromise = new Promise((resolve) => {
+        let finished = false;
+        const done = () => {
+          if (finished) return;
+          finished = true;
+          if (this.currentAudio === audio) this.currentAudio = null;
+          resolve();
+        };
+        audio.addEventListener("ended", done);
+        audio.addEventListener("error", done);
+        // Fallback safety timeout if audio stalls
+        setTimeout(done, 15000);
+      });
+
+      await audio.play();
+      return { audio, playPromise, epoch: myEpoch };
+    } catch (e) {
+      console.warn("Voice commentary playback:", e);
+      return null;
+    }
+  }
+};
+
 async function speak(key, text, { tag = "", target = null, sub = "" } = {}) {
   setSpeaker(key, target);
   captionFor(key);
@@ -533,21 +600,60 @@ async function speak(key, text, { tag = "", target = null, sub = "" } = {}) {
   const words = text.split(" ").filter(Boolean);
   p.innerHTML = words.map((w) => `<span class="w">${esc(w)}</span> `).join("");
   const spans = $$(".w", p);
-  for (let i = 0; i < words.length; i++) {
-    if (player.fast) break;
-    const w = words[i];
-    spans[i].classList.add("on");
-    const shapes = shapesFor(w.replace(/[^a-z]/gi, ""));
-    const dur = Math.max(170, w.length * 52);
-    const per = dur / (shapes.length + 1);
-    for (const sh of shapes) { setShape(key, sh); await player.sleep(per); }
-    setShape(key, "base");
-    await player.sleep(per + (/[.!?]["”)]?$/.test(w) ? 340 : /[,;:]$/.test(w) ? 170 : 25));
+
+  // Play audio commentary if voice is enabled
+  let playback = null;
+  if (voiceEngine.enabled && !player.fast) {
+    playback = await voiceEngine.play(key, text);
   }
+
+  if (playback && playback.audio) {
+    const audio = playback.audio;
+    const durSec = (audio.duration && !isNaN(audio.duration) && audio.duration > 0.5)
+      ? audio.duration
+      : Math.max(1.8, words.length * 0.28);
+    const totalMs = (durSec * 1000) / (player.speed || 1);
+    const msPerWord = totalMs / Math.max(1, words.length);
+
+    for (let i = 0; i < words.length; i++) {
+      if (player.fast || playback.epoch !== voiceEngine.audioEpoch) break;
+      const w = words[i];
+      spans[i].classList.add("on");
+      const shapes = shapesFor(w.replace(/[^a-z]/gi, ""));
+      const wordDur = Math.max(120, Math.min(msPerWord, w.length * 48));
+      const per = wordDur / (shapes.length + 1);
+      for (const sh of shapes) {
+        setShape(key, sh);
+        await player.sleep(per);
+      }
+      setShape(key, "base");
+      const pause = Math.max(15, msPerWord - wordDur);
+      await player.sleep(pause);
+    }
+
+    // Wait until audio finishes before moving to the next speaker
+    if (playback.epoch === voiceEngine.audioEpoch) {
+      await Promise.race([playback.playPromise, player.sleep(totalMs + 300)]);
+    }
+  } else {
+    // Fallback silent timing loop
+    for (let i = 0; i < words.length; i++) {
+      if (player.fast) break;
+      const w = words[i];
+      spans[i].classList.add("on");
+      const shapes = shapesFor(w.replace(/[^a-z]/gi, ""));
+      const dur = Math.max(170, w.length * 52);
+      const per = dur / (shapes.length + 1);
+      for (const sh of shapes) { setShape(key, sh); await player.sleep(per); }
+      setShape(key, "base");
+      await player.sleep(per + (/[.!?]["”)]?$/.test(w) ? 340 : /[,;:]$/.test(w) ? 170 : 25));
+    }
+  }
+
   spans.forEach((s) => s.classList.add("on"));
   setShape(key, "base");
   $("#capSub").innerHTML = sub;
-  await player.sleep(1300);
+  await player.sleep(1200);
 }
 
 // idle blinking for everyone, so the room feels alive between lines
