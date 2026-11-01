@@ -61,9 +61,15 @@
             <div class="row"><button class="ghost" type="button" id="waitGuide">What to put in your question</button><button class="ghost" type="button" id="waitHistory">Watch a past council</button></div>
           </div>
 
-          <form class="composer" id="composer" hidden>
+          <form class="composer" id="composer">
             <h2 data-type>What decision do you need help with?</h2>
-            <textarea id="prompt" rows="3" placeholder="Give them the decision, your options, a few numbers (revenue, cash, team), and which way you're leaning." required minlength="10"></textarea>
+            <div class="voice-header-bar">
+              <span class="voice-badge">⚡ Glaido / Whisperflow Dictation Ready</span>
+              <button type="button" class="mic-toggle-btn" id="micBtn" title="Click to speak or use Ctrl+Shift with Glaido / Whisperflow">
+                <span class="mic-icon">🎙️</span> <span id="micLabel">Click to Speak (or Ctrl+Shift)</span>
+              </button>
+            </div>
+            <textarea id="prompt" rows="3" placeholder="Speak your decision into your mic with Glaido, Whisperflow, or click the mic button above (e.g. Should I raise my prices from $2k to $3.5k?)..." required minlength="10" autofocus></textarea>
             <div class="samples" id="samples"></div>
             <div class="composer-row">
               <div class="mode" role="radiogroup" aria-label="Council size">

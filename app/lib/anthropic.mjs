@@ -1,4 +1,5 @@
 import { env } from "./env.mjs";
+import { geminiStream, geminiJson } from "./gemini.mjs";
 
 const URL = "https://api.anthropic.com/v1/messages";
 const RETRY = new Set([429, 500, 502, 503, 529]);
@@ -24,6 +25,10 @@ function addUsage(u = {}) {
 
 /** Stream a message; calls onText(delta) as text arrives. Returns the full text. */
 export async function stream({ model, system, messages, maxTokens = 2000, onText = () => {} }) {
+  if (env("GEMINI_API_KEY") && !env("ANTHROPIC_API_KEY")) {
+    usage.calls += 1;
+    return geminiStream({ model, system, messages, maxTokens, onText });
+  }
   for (let attempt = 0; attempt < 6; attempt++) {
     const res = await fetch(URL, {
       method: "POST",
@@ -65,6 +70,10 @@ export async function stream({ model, system, messages, maxTokens = 2000, onText
 
 /** One call with structured JSON output matching `schema`. */
 export async function json({ model, system, prompt, schema, maxTokens = 4000 }) {
+  if (env("GEMINI_API_KEY") && !env("ANTHROPIC_API_KEY")) {
+    usage.calls += 1;
+    return geminiJson({ model, system, prompt, schema, maxTokens });
+  }
   for (let attempt = 0; attempt < 6; attempt++) {
     const res = await fetch(URL, {
       method: "POST",

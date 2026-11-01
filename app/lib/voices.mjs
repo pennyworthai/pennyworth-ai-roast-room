@@ -230,3 +230,4 @@ export async function synthesizeVoice(seatKey, text, options = {}) {
   fs.writeFileSync(filePath, buffer);
   return { filePath, mimeType: "audio/mpeg", hash, cached: false, engine: "edge" };
 }
+

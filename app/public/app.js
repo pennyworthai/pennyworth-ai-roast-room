@@ -285,6 +285,100 @@ function bindUI() {
   }));
   $("#skipBtn").addEventListener("click", () => player.skip());
   voiceEngine.init();
+  setupVoiceDictation();
+}
+
+function setupVoiceDictation() {
+  const promptEl = $("#prompt");
+  const micBtn = $("#micBtn");
+  const micLabel = $("#micLabel");
+  if (!promptEl || !micBtn) return;
+
+  const autoResize = () => {
+    promptEl.style.height = "auto";
+    promptEl.style.height = Math.min(260, Math.max(80, promptEl.scrollHeight)) + "px";
+  };
+  promptEl.addEventListener("input", autoResize);
+
+  setTimeout(() => promptEl.focus(), 300);
+
+  promptEl.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      $("#convene").click();
+    }
+  });
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isListening = false;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      isListening = true;
+      micBtn.classList.add("recording");
+      micLabel.textContent = "🔴 Listening... (speak now)";
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + " ";
+        }
+      }
+      if (finalTranscript) {
+        const cur = promptEl.value;
+        promptEl.value = (cur ? cur.trim() + " " : "") + finalTranscript.trim();
+        autoResize();
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.warn("Speech recognition error:", e.error);
+      stopListening();
+    };
+
+    recognition.onend = () => {
+      stopListening();
+    };
+  }
+
+  function startListening() {
+    if (!recognition) {
+      toast("Use Glaido or Whisperflow with Ctrl+Shift, or allow microphone access.");
+      return;
+    }
+    try {
+      recognition.start();
+    } catch {}
+  }
+
+  function stopListening() {
+    isListening = false;
+    micBtn.classList.remove("recording");
+    micLabel.textContent = "Click to Speak (or Ctrl+Shift)";
+    if (recognition) {
+      try { recognition.stop(); } catch {}
+    }
+  }
+
+  micBtn.addEventListener("click", () => {
+    promptEl.focus();
+    if (isListening) stopListening();
+    else startListening();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey) {
+      promptEl.focus();
+    }
+  });
 }
 
 // ------------------------------------------------------------- the player

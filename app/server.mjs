@@ -15,8 +15,10 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 let running = null; // one council at a time (API runner)
 
 // "viewer" (default): the room plays councils that /roast-room runs in Gemini.
-// "api": the room can also run councils itself on ANTHROPIC_API_KEY (COUNCIL_RUNNER=api in .env).
-const RUNNER = (process.env.COUNCIL_RUNNER || env("COUNCIL_RUNNER") || "viewer").toLowerCase() === "api" ? "api" : "viewer";
+// "api": the room runs councils itself using GEMINI_API_KEY or ANTHROPIC_API_KEY.
+const hasAnyKey = Boolean(process.env.ANTHROPIC_API_KEY || env("ANTHROPIC_API_KEY") || process.env.GEMINI_API_KEY || env("GEMINI_API_KEY"));
+const defaultRunner = hasAnyKey ? "api" : "viewer";
+const RUNNER = (process.env.COUNCIL_RUNNER || env("COUNCIL_RUNNER") || defaultRunner).toLowerCase() === "api" ? "api" : "viewer";
 watch.startWatching();
 
 function send(res, code, body, type = "application/json") {
@@ -38,7 +40,7 @@ const server = http.createServer(async (req, res) => {
       // portraits: which of the four mouth shapes exist for each seat (a seat with none gets a drawn bust)
       const frame = (key, sh) => ["webp", "png", "jpg"].map((x) => `${key}-${sh}.${x}`).find((f) => fs.existsSync(path.join(PUBLIC, "portraits", f)));
       const seats = loadRoster().map((s) => ({ ...s, voice: SEAT_VOICES[s.key] || null, portraits: Object.fromEntries(["base", "open", "mid", "blink"].map((sh) => [sh, frame(s.key, sh)]).filter(([, f]) => f).map(([sh, f]) => [sh, `/portraits/${f}`])) }));
-      return send(res, 200, { seats, board: BOARD, models: MODELS, runner: RUNNER, hasKey: Boolean(env("ANTHROPIC_API_KEY")) });
+      return send(res, 200, { seats, board: BOARD, models: MODELS, runner: RUNNER, hasKey: hasAnyKey });
     }
     if (p === "/api/voices") return send(res, 200, { voices: SEAT_VOICES });
     if (p === "/api/voice") {

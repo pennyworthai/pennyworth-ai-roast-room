@@ -17,3 +17,4 @@ if (fs.existsSync(target)) {
     console.log("kokoro-js already patched or pattern updated.");
   }
 }
+
