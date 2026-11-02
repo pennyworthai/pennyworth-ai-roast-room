@@ -97,6 +97,62 @@ const state = {
   cards: { 1: {}, 2: {}, 3: {} }, replaying: false, verdict: null, links: [], geo: {}, setup: null, wait: null,
 };
 
+// ------------------------------------------------------------- advisor metadata & reactions
+const ADVISOR_META = {
+  bezos: { emoji: "📦", defaultReac: "Customer obsession & reversible bets" },
+  graham: { emoji: "💡", defaultReac: "Make something people actually want" },
+  hormozi: { emoji: "🥩", defaultReac: "Grand Slam Offer & double the price" },
+  garyvee: { emoji: "🍷", defaultReac: "Underpriced attention & daily content" },
+  martell: { emoji: "⏳", defaultReac: "Buy back your calendar first" },
+  wickman: { emoji: "⚙️", defaultReac: "Right people in the right seats" },
+  buffett: { emoji: "🪙", defaultReac: "Protect downside & preserve capital" },
+  naval: { emoji: "🧘", defaultReac: "Code, media & zero-marginal leverage" },
+  sanchez: { emoji: "🗞️", defaultReac: "Cash-flowing boring businesses" },
+  blakely: { emoji: "✂️", defaultReac: "Bootstrap & self-funded product love" },
+  leila: { emoji: "👑", defaultReac: "Leadership, org design & team capacity" },
+  musk: { emoji: "🚀", defaultReac: "First principles & execution speed" },
+  gadzhi: { emoji: "⌚", defaultReac: "High-ticket retainers & immediate cash flow" },
+};
+
+function getAdvisorReaction(key, promptText = "") {
+  const meta = ADVISOR_META[key] || { emoji: "👤", defaultReac: "Weighing decision" };
+  const t = promptText.toLowerCase();
+  if (!t || t.length < 5) return { emoji: meta.emoji, text: meta.defaultReac };
+
+  if (/price|pricing|charge|\$|raise|rate|cost|margin|underpaid|client/i.test(t)) {
+    if (key === "hormozi") return { emoji: "🥩", text: "Double the price! Add guarantee." };
+    if (key === "gadzhi") return { emoji: "⌚", text: "Charge upfront retainers on day 1." };
+    if (key === "buffett") return { emoji: "🪙", text: "Is there real pricing power?" };
+    if (key === "graham") return { emoji: "💡", text: "Charge more to test true demand." };
+    if (key === "blakely") return { emoji: "✂️", text: "Charge what your product is worth." };
+  }
+  if (/hire|team|closer|person|burnout|hours|calendar|delegate|replace|salesperson|founder/i.test(t)) {
+    if (key === "martell") return { emoji: "⏳", text: "Calculate your Buyback Rate first!" };
+    if (key === "leila") return { emoji: "👑", text: "Check your team & org chart capacity." };
+    if (key === "wickman") return { emoji: "⚙️", text: "Right person, right seat on EOS." };
+    if (key === "musk") return { emoji: "🚀", text: "Can automation or code delete this step?" };
+    if (key === "bezos") return { emoji: "📦", text: "Two-pizza team or bar-raiser?" };
+  }
+  if (/agency|client|service|smma|receptionist|b2b|dentist|automation/i.test(t)) {
+    if (key === "gadzhi") return { emoji: "⌚", text: "Agency model with high-ticket retainers." };
+    if (key === "garyvee") return { emoji: "🍷", text: "Produce 20 clips daily for organic leads." };
+    if (key === "sanchez") return { emoji: "🗞️", text: "Lock in service cash flow first." };
+    if (key === "hormozi") return { emoji: "🥩", text: "Bundle it as a high-ticket no-brainer." };
+  }
+  if (/saas|software|app|build|product|dev|code/i.test(t)) {
+    if (key === "graham") return { emoji: "💡", text: "Do things that don't scale first." };
+    if (key === "naval") return { emoji: "🧘", text: "Code gives you permissionless leverage." };
+    if (key === "musk") return { emoji: "🚀", text: "Strip unnecessary features, move 10x." };
+    if (key === "bezos") return { emoji: "📦", text: "Obsess over customer friction." };
+  }
+  if (/cash|bank|revenue|quit|job|safe|risk|invest|runway/i.test(t)) {
+    if (key === "buffett") return { emoji: "🪙", text: "Rule 1: Never lose money." };
+    if (key === "sanchez") return { emoji: "🗞️", text: "Protect your baseline cash runway." };
+    if (key === "naval") return { emoji: "🧘", text: "Own equity, don't rent your time." };
+  }
+  return { emoji: meta.emoji, text: meta.defaultReac };
+}
+
 // ------------------------------------------------------------- boot
 async function boot() {
   const r = await refreshSeats();
@@ -125,6 +181,7 @@ async function refreshSeats() {
   state.byKey = Object.fromEntries(r.seats.map((s) => [s.key, s]));
   state.board = (r.board?.default || []).filter((k) => state.byKey[k]);
   if (!state.board.length) state.board = r.seats.slice(0, 7).map((s) => s.key);
+  if ($("#topRosterCount")) $("#topRosterCount").textContent = state.seats.length;
   bustCache.clear();
   return r;
 }
@@ -286,6 +343,106 @@ function bindUI() {
   $("#skipBtn").addEventListener("click", () => player.skip());
   voiceEngine.init();
   setupVoiceDictation();
+  bindRosterAndModals();
+}
+
+let modalSelectedKeys = new Set();
+
+function openRosterModal() {
+  modalSelectedKeys = new Set(state.table);
+  renderRosterGrid();
+  const d = $("#rosterDialog");
+  if (d && !d.open) d.showModal();
+}
+
+function renderRosterGrid() {
+  const grid = $("#rosterGrid");
+  if (!grid) return;
+  const promptVal = $("#prompt")?.value || "";
+  const seats = state.seats || [];
+  $("#modalTotalCount").textContent = seats.length;
+  $("#modalSeatedSummary").textContent = `${modalSelectedKeys.size} of ${seats.length} selected for table (max ${MAX_TABLE})`;
+  grid.innerHTML = seats.map((s) => {
+    const isSel = modalSelectedKeys.has(s.key);
+    const reac = getAdvisorReaction(s.key, promptVal);
+    const col = s.color || "#37bdf8";
+    return `
+      <div class="roster-card ${isSel ? "is-selected" : ""}" data-key="${s.key}">
+        <div class="roster-card-check">${isSel ? "✓" : ""}</div>
+        <div class="roster-card-avatar" style="border-color:${col}">
+          <img src="${portrait(s.key, "base")}" alt="${esc(s.name)}">
+          <span class="dock-emoji-badge">${reac.emoji}</span>
+        </div>
+        <div class="roster-card-body">
+          <div class="roster-card-header">
+            <span class="roster-card-name">${esc(s.name)}</span>
+            <span class="muted" style="font-size:11px">(${esc(s.initials)})</span>
+          </div>
+          <div class="roster-card-pillar">${esc(s.pillar)}</div>
+          <div class="roster-card-question"><b>Owns:</b> ${esc(s.question)}</div>
+          <div class="roster-card-reaction">
+            <span>${reac.emoji}</span>
+            <span>${esc(reac.text)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function bindRosterAndModals() {
+  // Roster button in top bar
+  $("#rosterBtn")?.addEventListener("click", openRosterModal);
+  $("#screenshotBtn")?.addEventListener("click", () => {
+    const d = $("#screenshotDialog");
+    if (d && !d.open) d.showModal();
+  });
+
+  // Preset buttons in roster modal
+  $$(".preset-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = btn.dataset.preset;
+      if (p === "default") modalSelectedKeys = new Set(state.board);
+      else if (p === "all") modalSelectedKeys = new Set(state.seats.slice(0, MAX_TABLE).map((s) => s.key));
+      else if (p === "cashflow") modalSelectedKeys = new Set(["hormozi", "gadzhi", "buffett", "sanchez", "garyvee"].filter((k) => state.byKey[k]));
+      else if (p === "scale") modalSelectedKeys = new Set(["graham", "wickman", "martell", "leila", "musk", "bezos"].filter((k) => state.byKey[k]));
+      $$(".preset-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      renderRosterGrid();
+    });
+  });
+
+  // Toggle selection inside modal
+  $("#rosterGrid")?.addEventListener("click", (e) => {
+    const card = e.target.closest(".roster-card");
+    if (!card) return;
+    const key = card.dataset.key;
+    if (!key) return;
+    if (modalSelectedKeys.has(key)) {
+      if (modalSelectedKeys.size <= 1) {
+        toast("Select at least one advisor for the council.");
+        return;
+      }
+      modalSelectedKeys.delete(key);
+    } else {
+      if (modalSelectedKeys.size >= MAX_TABLE) {
+        toast(`Maximum ${MAX_TABLE} seats can sit at the council table.`);
+        return;
+      }
+      modalSelectedKeys.add(key);
+    }
+    renderRosterGrid();
+  });
+
+  // Apply modal selection to table
+  $("#applyBoardBtn")?.addEventListener("click", () => {
+    if (modalSelectedKeys.size === 0) {
+      toast("Select at least one advisor for the table.");
+      return;
+    }
+    const keys = [...modalSelectedKeys];
+    renderSeats(keys);
+    $("#rosterDialog").close();
+    toast(`Table updated: ${keys.length} advisors seated.`);
+  });
 }
 
 function setupVoiceDictation() {
@@ -750,18 +907,21 @@ async function speak(key, text, { tag = "", target = null, sub = "" } = {}) {
   await player.sleep(1200);
 }
 
-// idle blinking for everyone, so the room feels alive between lines
+// idle blinking for everyone on stage
 const blinking = new Set();
 function startBlinking() {
   const blink = (key) => {
     const b = $(`#seat-${key} .bust`);
     if (b && b.dataset.shape === "base") {
       b.dataset.shape = "blink";
-      setTimeout(() => { if (b.dataset.shape === "blink") b.dataset.shape = "base"; }, 130);
+      setTimeout(() => { if (b.dataset.shape === "blink") b.dataset.shape = "base"; }, 140);
     }
-    setTimeout(() => blink(key), 2400 + Math.random() * 4200);
+    setTimeout(() => blink(key), 2200 + Math.random() * 4200);
   };
-  state.table.filter((k) => !blinking.has(k)).forEach((k, i) => { blinking.add(k); setTimeout(() => blink(k), 600 + i * 530); });
+  state.table.filter((k) => !blinking.has(k)).forEach((k, i) => {
+    blinking.add(k);
+    setTimeout(() => blink(k), 500 + i * 400);
+  });
 }
 
 async function onSeatDone(ev) {

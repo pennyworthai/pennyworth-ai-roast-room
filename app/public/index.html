@@ -28,6 +28,8 @@
     <div class="top-actions">
       <span class="usage" id="usage" title="Tokens used by this app since it started"></span>
       <button class="ghost active" id="voiceToggleBtn" type="button" aria-pressed="true" title="Toggle advisor commentary voices">🔊 Voice On</button>
+      <button class="ghost" id="rosterBtn" type="button" title="View all members, emojis, and select the board">👥 Advisors (<span id="topRosterCount">13</span>)</button>
+      <button class="ghost" id="screenshotBtn" type="button" title="View the exact screenshot of the Roast Room">📷 Room View</button>
       <button class="ghost" id="guideBtn" type="button">How it works</button>
       <button class="ghost" id="historyBtn" type="button">Past sessions</button>
       <button class="ghost" id="newBtn" type="button" hidden>New question</button>
@@ -42,7 +44,7 @@
     <div class="options" id="options"></div>
   </div>
 
-  <main class="layout">
+  <main class="layout" id="mainLayout">
     <section class="stage-wrap" aria-label="The council table">
       <div class="stage" id="stage">
         <div class="wall" aria-hidden="true"></div>
@@ -142,6 +144,47 @@
     <p class="muted">Replay a council exactly as it happened.</p>
     <ul class="history" id="historyList"></ul>
     <form method="dialog"><button class="ghost">Close</button></form>
+  </dialog>
+
+  <!-- All Members & Board Selector Modal -->
+  <dialog id="rosterDialog" class="card-dialog roster-dialog">
+    <div class="roster-modal-head">
+      <div class="roster-modal-title">
+        <span class="dock-badge">TEAM ROSTER</span>
+        <h3>All Roast Room Members (<span id="modalTotalCount">13</span>)</h3>
+        <p class="muted">Select which advisors sit at the table for this council. Toggle seats, view their face emojis, and inspect their active reactions.</p>
+      </div>
+      <div class="roster-modal-presets">
+        <button type="button" class="preset-btn" data-preset="default">Default 7</button>
+        <button type="button" class="preset-btn" data-preset="all">All 13 On Deck</button>
+        <button type="button" class="preset-btn" data-preset="cashflow">Cash Flow & Growth</button>
+        <button type="button" class="preset-btn" data-preset="scale">Scale & Systems</button>
+      </div>
+    </div>
+    <div class="roster-grid" id="rosterGrid"></div>
+    <div class="roster-modal-foot">
+      <span class="seated-status-text" id="modalSeatedSummary">7 of 13 seated at the table</span>
+      <div class="roster-foot-actions">
+        <button type="button" class="convene" id="applyBoardBtn">Apply to Table</button>
+        <form method="dialog"><button class="ghost">Close</button></form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Exact Screenshot Modal -->
+  <dialog id="screenshotDialog" class="card-dialog screenshot-dialog">
+    <div class="screenshot-modal-head">
+      <span class="dock-badge">STAGE REFERENCE</span>
+      <h3>Exact Roast Room Layout</h3>
+      <p class="muted">Full reference layout of the Roast Room council stage, interactive composer, and active board.</p>
+    </div>
+    <div class="screenshot-wrap">
+      <img src="/brand/roast-room-screenshot.png" alt="Exact Roast Room Stage Screenshot" class="screenshot-img">
+    </div>
+    <div class="screenshot-modal-foot">
+      <span class="muted">Current local server running on <a href="http://localhost:4730" target="_blank" style="color:var(--accent);">http://localhost:4730</a></span>
+      <form method="dialog"><button class="ghost">Close</button></form>
+    </div>
   </dialog>
 
   <div class="toast" id="toast" hidden></div>

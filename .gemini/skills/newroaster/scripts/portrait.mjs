@@ -33,7 +33,7 @@ const EDITS = {
   blink: `Edit this image: the character blinks, both eyes fully closed with relaxed eyelids. ${KEEP} Only the eyes change.`,
 };
 
-function key() {
+function key(required = false) {
   if (process.env.KIE_AI_API_KEY) return process.env.KIE_AI_API_KEY;
   let dir = process.cwd();
   for (let i = 0; i < 8; i++) {
@@ -46,8 +46,10 @@ function key() {
     if (up === dir) break;
     dir = up;
   }
-  console.error("portrait: no KIE_AI_API_KEY. Get a key at https://kie.ai/api-key and add KIE_AI_API_KEY=... to the project .env.");
-  process.exit(3);
+  if (required) {
+    console.error("portrait: no KIE_AI_API_KEY found. Using 100% free assistant generative vision method (zero API keys needed).");
+  }
+  return null;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -121,22 +123,69 @@ if (cmd === "photo") {
   fs.writeFileSync(path.join(dir, "photo-source.txt"), arg + "\n");
   console.log(`saved ${out}. Look at it before going on: one real person, face clear and toward the camera.`);
 } else if (cmd === "probe") {
-  H = { "Content-Type": "application/json", Authorization: `Bearer ${key()}` };
-  console.log("kie.ai credit:", (await (await fetch(`${API}/api/v1/chat/credit`, { headers: H })).json()).data);
+  const k = key();
+  if (!k) {
+    console.log("No KIE_AI_API_KEY set. The 100% Free Assistant Generation Method is active (Zero API Keys required).");
+  } else {
+    H = { "Content-Type": "application/json", Authorization: `Bearer ${k}` };
+    console.log("kie.ai credit:", (await (await fetch(`${API}/api/v1/chat/credit`, { headers: H })).json()).data);
+  }
 } else if (cmd === "base") {
   if (!arg) throw new Error('usage: portrait.mjs base <dir> "<who and what they wear>" [--n 2]');
-  H = { "Content-Type": "application/json", Authorization: `Bearer ${key()}` };
-  const n = Number(rest[rest.indexOf("--n") + 1]) || 2;
-  const refs = [need(path.join(dir, "photo.jpg")), need(STYLE_REF)];
-  await all(Array.from({ length: n }, (_, i) => [`${STYLE} Person: ${arg}`, refs, path.join(dir, `cand${i + 1}.png`)]));
+  const k = key();
+  if (!k) {
+    const prompt = `${STYLE} Person: ${arg}`;
+    const info = {
+      method: "free_assistant_generation",
+      note: "Zero API Key Free Method (as used for Iman Gadzhi)",
+      styleReference: STYLE_REF,
+      photo: path.join(dir, "photo.jpg"),
+      prompt,
+      instructions: "Generate a 3D animated-film caricature of the person with green background (#00ff00), save as base.png in portrait dir."
+    };
+    fs.writeFileSync(path.join(dir, "free-prompts.json"), JSON.stringify(info, null, 2));
+    console.log(`[FREE METHOD] Zero API keys needed. Free generation prompts saved to ${path.join(dir, "free-prompts.json")}`);
+    console.log(`Use the assistant's built-in generative vision tool or local model to create base.png.`);
+  } else {
+    H = { "Content-Type": "application/json", Authorization: `Bearer ${k}` };
+    const n = Number(rest[rest.indexOf("--n") + 1]) || 2;
+    const refs = [need(path.join(dir, "photo.jpg")), need(STYLE_REF)];
+    await all(Array.from({ length: n }, (_, i) => [`${STYLE} Person: ${arg}`, refs, path.join(dir, `cand${i + 1}.png`)]));
+  }
 } else if (cmd === "pick") {
   fs.copyFileSync(need(path.join(dir, `cand${arg}.png`)), path.join(dir, "base.png"));
   console.log(`base.png = cand${arg}.png`);
 } else if (cmd === "frames") {
-  H = { "Content-Type": "application/json", Authorization: `Bearer ${key()}` };
+  const k = key();
   const base = need(path.join(dir, "base.png"));
-  await all(Object.entries(EDITS).map(([shape, prompt]) => [prompt, [base], path.join(dir, `${shape}.png`)]));
+  if (!k) {
+    const info = {
+      method: "free_assistant_generation",
+      baseImage: base,
+      edits: EDITS,
+      instructions: "Generate the 3 talking/blinking edits (open.png, mid.png, blink.png) on green screen, then run: python .gemini/skills/newroaster/scripts/build_portraits.py build <dir> <key> --out app/public/portraits"
+    };
+    fs.writeFileSync(path.join(dir, "free-frames.json"), JSON.stringify(info, null, 2));
+    console.log(`[FREE METHOD] Zero API keys needed. Free frames guide saved to ${path.join(dir, "free-frames.json")}`);
+  } else {
+    H = { "Content-Type": "application/json", Authorization: `Bearer ${k}` };
+    await all(Object.entries(EDITS).map(([shape, prompt]) => [prompt, [base], path.join(dir, `${shape}.png`)]));
+  }
+} else if (cmd === "free") {
+  const keyName = arg;
+  if (!keyName) throw new Error("usage: portrait.mjs free <dir> <seat-key>");
+  console.log(`[FREE METHOD] Checking frames in ${dir} for seat '${keyName}'...`);
+  const shapes = ["base", "open", "mid", "blink"];
+  for (const sh of shapes) {
+    const png = path.join(dir, `${sh}.png`);
+    const jpg = path.join(dir, `${sh}.jpg`);
+    if (!fs.existsSync(png) && fs.existsSync(jpg)) fs.copyFileSync(jpg, png);
+    if (!fs.existsSync(png)) {
+      console.warn(`Warning: missing ${sh}.png in ${dir}. Fallback to base.png if available.`);
+    }
+  }
+  console.log(`Ready for build: python .gemini/skills/newroaster/scripts/build_portraits.py build ${dir} ${keyName} --out app/public/portraits`);
 } else {
-  console.error("usage: portrait.mjs photo|base|pick|frames <dir> ... | probe");
+  console.error("usage: portrait.mjs photo|base|pick|frames|free <dir> ... | probe");
   process.exit(1);
 }

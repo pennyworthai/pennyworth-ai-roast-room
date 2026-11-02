@@ -48,12 +48,14 @@ On-call seats (in `roster.json`, off the default board; the Chair recommends the
 | Sara | `council-blakely` | Consumer product and brand from zero | Will customers love it enough to sell it for you, without outside money? | `brains/sara-blakely/` |
 | Leila | `council-leila` | Leadership and scaling teams | Can your team and your leadership carry this, and who has to change? | `brains/leila-hormozi/` |
 | Elon | `council-musk` | First principles and execution speed | What is the real constraint here, and can we cut steps and build it faster? | `brains/elon-musk/` |
+| Iman | `council-gadzhi` | Agency models, high-ticket services & audience monetization | Can this generate immediate cash flow and high-ticket clients without overcomplicating operations? | `brains/iman-gadzhi/` |
 
 - Naval (own the equity, tiny teams, self-fund) against Hormozi and Gary V (more volume, more offers, more output that the founder still has to rent their hours to).
 - Codie (buy proven cash flow) against Graham and Naval (build something new people want).
 - Sara (product good enough to sell itself, no ads, no outside money) against Gary V and Hormozi (attention and sales machines) and against any seat pushing to raise.
 - Leila (fix lead flow and the founder's leadership before hiring) against Martell (hire early to buy back time). Leila and Wickman agree on accountability and split when process stands in for leadership.
 - Elon (question the requirement, delete the step, attack the bottleneck now) against Wickman (give every process an owner and a cadence) and Buffett (keep cash, wait for the fat pitch). Elon and Graham agree on speed and split on whether a launch counts before the delivery system scales.
+- Iman (immediate high-ticket client cash flow, contractor arbitrage, personal brand distribution) against Graham (build software first and wait for venture growth), Wickman (heavy corporate operating systems and meetings), and Buffett (slow 30-year compounding over immediate sovereign cash flow). Iman and Hormozi agree on high-ticket offers and cash velocity, but split on operational complexity: Iman insists on keeping delivery ultra-lean through contractor arbitrage rather than building large internal payroll teams.
 - Elon's aggressive dates are for the team, not for customers or lenders; Martell and Leila own what his pace costs the people.
 - Leila Hormozi and Alex Hormozi are different seats and different people. Name them "Leila" and "Hormozi".
 

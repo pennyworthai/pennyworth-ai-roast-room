@@ -129,6 +129,15 @@ export const SEAT_VOICES = {
     edgePitch: "-1Hz",
     gender: "male",
     description: "Analytical, first-principles, rapid velocity"
+  },
+  gadzhi: {
+    kokoro: "bm_daniel",
+    kokoroSpeed: 1.02,
+    edge: "en-GB-RyanNeural",
+    edgeRate: "+2%",
+    edgePitch: "-1Hz",
+    gender: "male",
+    description: "Calm, direct, British cadence & high-ticket strategist"
   }
 };
 
